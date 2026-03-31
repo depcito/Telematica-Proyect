@@ -1,0 +1,97 @@
+# ─────────────────────────────────────────────
+# C — compilados del servidor
+# ─────────────────────────────────────────────
+server/server
+server/*.o
+server/*.a
+*.out
+
+# ─────────────────────────────────────────────
+# Logs — nunca subir logs al repo
+# ─────────────────────────────────────────────
+*.log
+logs/
+/logs
+
+# ─────────────────────────────────────────────
+# Python
+# ─────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+
+# Entornos virtuales
+venv/
+env/
+.env/
+.venv/
+
+# ─────────────────────────────────────────────
+# Java — compilados
+# ─────────────────────────────────────────────
+*.class
+*.jar
+*.war
+*.ear
+out/
+build/
+target/
+
+# ─────────────────────────────────────────────
+# Docker
+# ─────────────────────────────────────────────
+.dockerignore
+
+# ─────────────────────────────────────────────
+# IDEs y editores
+# ─────────────────────────────────────────────
+
+# VS Code
+.vscode/
+
+# IntelliJ / Android Studio
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# Eclipse
+.classpath
+.project
+.settings/
+
+# ─────────────────────────────────────────────
+# Sistema operativo
+# ─────────────────────────────────────────────
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Linux
+*~
+
+# ─────────────────────────────────────────────
+# Variables de entorno — NUNCA subir credenciales
+# ─────────────────────────────────────────────
+.env
+.env.local
+.env.production
+*.env
+
+# ─────────────────────────────────────────────
+# Archivos temporales
+# ─────────────────────────────────────────────
+tmp/
+temp/
+*.tmp
+*.swp
+*.swo
