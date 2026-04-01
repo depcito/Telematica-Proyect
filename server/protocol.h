@@ -155,7 +155,7 @@ typedef struct {
 /* Envía un mensaje terminado en \n al socket */
 #define SEND_MSG(fd, msg) \
     do { \
-        char _buf[BUFFER_SIZE]; \
+        char _buf[BUFFER_SIZE + 2]; \
         snprintf(_buf, sizeof(_buf), "%s\n", msg); \
         send(fd, _buf, strlen(_buf), 0); \
     } while(0)
