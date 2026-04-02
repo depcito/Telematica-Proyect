@@ -60,6 +60,7 @@ public class AuthClient {
 
     // ── HTTP ───────────────────────────────────────────────────────────────
 
+    @SuppressWarnings("deprecation")
     private String httpPost(String url, String jsonBody) throws IOException {
         HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
         conn.setRequestMethod("POST");

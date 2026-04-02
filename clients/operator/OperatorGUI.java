@@ -22,6 +22,7 @@ import java.util.TimerTask;
  *  WARNING  → naranja
  *  CRITICAL → rojo
  */
+@SuppressWarnings("unused")
 public class OperatorGUI extends JFrame {
 
     // ── Estado ─────────────────────────────────────────────────────────────
