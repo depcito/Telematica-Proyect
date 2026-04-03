@@ -21,6 +21,8 @@ import argparse
 from flask import Flask, request, jsonify
 
 app = Flask(__name__)
+from flask_cors import CORS
+CORS(app)
 
 # ── Tokens activos en memoria: {token: {username, role, expires}} ────────────
 active_tokens: dict = {}
