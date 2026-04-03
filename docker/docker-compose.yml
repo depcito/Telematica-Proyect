@@ -1,0 +1,87 @@
+# ─────────────────────────────────────────────
+# docker-compose.yml — Sistema IoT Monitoring
+#
+# Servicios:
+#   auth-server  → servicio Flask de autenticación (puerto 5001)
+#   server       → servidor C de monitoreo IoT     (puerto 8080)
+#
+# Red interna:
+#   Ambos servicios están en la misma red Docker "iot-net".
+#   El servidor C resuelve "auth-server" automáticamente por DNS interno.
+#   No se necesita /etc/hosts ni IPs hardcodeadas.
+#
+# Uso:
+#   Levantar todo:        docker-compose up -d
+#   Ver logs en vivo:     docker-compose logs -f
+#   Detener todo:         docker-compose down
+#   Reconstruir:          docker-compose up -d --build
+# ─────────────────────────────────────────────
+
+services:
+
+  # ── Servicio de autenticación ──────────────────────────────────────────
+  auth-server:
+    build:
+      context: ..          # raíz del repositorio
+      dockerfile: docker/Dockerfile.auth
+    container_name: iot-auth
+    restart: unless-stopped
+    ports:
+      - "5001:5001"        # accesible desde el host para el cliente Java
+    volumes:
+      - ../auth/users.json:/app/users.json   # permite editar usuarios sin rebuild
+    networks:
+      - iot-net
+    healthcheck:
+      test: ["CMD", "python3", "-c",
+             "import urllib.request; urllib.request.urlopen('http://localhost:5001/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+  # ── Servidor C principal ───────────────────────────────────────────────
+  server:
+    build:
+      context: ..          # raíz del repositorio
+      dockerfile: docker/Dockerfile
+    container_name: iot-server
+    restart: unless-stopped
+    ports:
+      - "8080:8080"        # protocolo IoT — sensores y operador Java
+      - "8081:8081"        # interfaz web HTTP
+    volumes:
+      - iot-logs:/logs     # logs persistentes entre reinicios
+    environment:
+      - AUTH_HOST=auth-server   # nombre DNS interno de Docker
+      - AUTH_PORT=5001
+    networks:
+      - iot-net
+    depends_on:
+      auth-server:
+        condition: service_healthy   # espera que auth esté listo antes de arrancar
+
+  # ── Sensores IoT simulados ────────────────────────────────────────────
+  sensors:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.sensors
+    container_name: iot-sensors
+    restart: unless-stopped
+    environment:
+      - SERVER_HOST=server     # nombre DNS interno del servidor C en Docker
+      - SERVER_PORT=8080
+      - SEND_INTERVAL=5
+    networks:
+      - iot-net
+    depends_on:
+      - server                 # espera que el servidor C esté levantado
+
+# ── Red interna ────────────────────────────────────────────────────────
+networks:
+  iot-net:
+    driver: bridge
+
+# ── Volúmenes persistentes ─────────────────────────────────────────────
+volumes:
+  iot-logs:    # los logs del servidor sobreviven a reinicios del contenedor

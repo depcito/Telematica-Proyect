@@ -1,0 +1,27 @@
+# ─────────────────────────────────────────────
+# Dockerfile.sensors — Sensores IoT simulados
+#
+# Imagen base: Python 3.12 slim
+# Lanza los 5 sensores simultáneamente con run_all_sensors.py
+#
+# Variables de entorno:
+#   SERVER_HOST    → hostname del servidor C  (default: server)
+#   SERVER_PORT    → puerto del servidor C    (default: 8080)
+#   SEND_INTERVAL  → segundos entre mediciones (default: 5)
+# ─────────────────────────────────────────────
+
+FROM python:3.12-slim
+
+WORKDIR /app
+
+# Copiar los archivos de los sensores
+COPY clients/sensors/ .
+
+# Variables de entorno por defecto
+# En docker-compose SERVER_HOST apunta al nombre del servicio "server"
+ENV SERVER_HOST=server
+ENV SERVER_PORT=8080
+ENV SEND_INTERVAL=5
+
+# Lanzar todos los sensores
+CMD ["python3", "run_all_sensors.py"]
