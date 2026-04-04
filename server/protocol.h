@@ -124,6 +124,10 @@ typedef struct
    Measurement history[MAX_SENSOR_HISTORY];
    int history_count;
    int history_index; /* índice circular */
+   
+   /* --- NUEVOS CAMPOS --- */
+   char last_alert_level[16];
+   char last_alert_msg[128];
 } Sensor;
 
 /* Un operador registrado */
@@ -163,7 +167,7 @@ typedef struct
 #define SEND_MSG(fd, msg)                        \
    do                                            \
    {                                             \
-      char _buf[BUFFER_SIZE];                    \
+      char _buf[BUFFER_SIZE + 2];                \
       snprintf(_buf, sizeof(_buf), "%s\n", msg); \
       send(fd, _buf, strlen(_buf), 0);           \
    } while (0)
@@ -172,7 +176,7 @@ typedef struct
 #define SEND_MSGF(fd, fmt, ...)                            \
    do                                                      \
    {                                                       \
-      char _buf[BUFFER_SIZE];                              \
+      char _buf[BUFFER_SIZE + 2];                              \
       snprintf(_buf, sizeof(_buf), fmt "\n", __VA_ARGS__); \
       send(fd, _buf, strlen(_buf), 0);                     \
    } while (0)

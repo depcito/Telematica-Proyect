@@ -7,6 +7,7 @@
  *   gcc -o server server.c logger.c -lpthread -Wall -Wextra
  */
 
+#define _POSIX_C_SOURCE 200112L
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -181,11 +182,32 @@ static int check_anomaly(const char *type, double value,
             snprintf(msg, sizeof(msg), "Equipment_stopped:0_BINARY");
         }
     }
-
+    
     if (level)
     {
         broadcast_alert(level, sensor_id, msg);
+        
+        /* Guardar la alerta en el estado del sensor */
+        pthread_mutex_lock(&state_mutex);
+        Sensor *s = find_sensor(sensor_id);
+        if (s) {
+            strncpy(s->last_alert_level, level, sizeof(s->last_alert_level) - 1);
+            strncpy(s->last_alert_msg, msg, sizeof(s->last_alert_msg) - 1);
+        }
+        pthread_mutex_unlock(&state_mutex);
+        
         return 1; /* anomalía detectada */
+    }
+    else 
+    {
+        /* Si todo está bien, el estado es INFO / Normal */
+        pthread_mutex_lock(&state_mutex);
+        Sensor *s = find_sensor(sensor_id);
+        if (s) {
+            strncpy(s->last_alert_level, "INFO", sizeof(s->last_alert_level) - 1);
+            strncpy(s->last_alert_msg, "Normal", sizeof(s->last_alert_msg) - 1);
+        }
+        pthread_mutex_unlock(&state_mutex);
     }
     return 0;
 }

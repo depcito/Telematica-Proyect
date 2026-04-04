@@ -20,6 +20,9 @@ WORKDIR /app
 # Copiar todo el código fuente del servidor
 COPY server/ .
 
+# Copiar la carpeta web con los HTML físicos
+COPY web/ web/
+
 # Compilar
 RUN make
 

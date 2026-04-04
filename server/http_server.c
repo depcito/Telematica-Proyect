@@ -31,81 +31,6 @@
 static ServerState *g_state = NULL;
 
 /* ─────────────────────────────────────────────
-   PÁGINAS HTML
-   La Persona 3 puede reemplazar estos strings
-   con el contenido final de web/index.html
-───────────────────────────────────────────── */
-
-static const char *HTML_INDEX =
-    "<!DOCTYPE html>\n"
-    "<html lang=\"es\">\n"
-    "<head>\n"
-    "  <meta charset=\"UTF-8\">\n"
-    "  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n"
-    "  <title>IoT Monitoring — Login</title>\n"
-    "  <style>\n"
-    "    * { box-sizing: border-box; margin: 0; padding: 0; }\n"
-    "    body { font-family: Arial, sans-serif; background: #1a1a2e; display: flex;\n"
-    "           align-items: center; justify-content: center; min-height: 100vh; }\n"
-    "    .card { background: #16213e; border-radius: 12px; padding: 40px;\n"
-    "            width: 360px; box-shadow: 0 8px 32px rgba(0,0,0,0.4); }\n"
-    "    h1 { color: #e94560; font-size: 22px; margin-bottom: 8px; }\n"
-    "    p  { color: #a0a0b0; font-size: 13px; margin-bottom: 28px; }\n"
-    "    label { display: block; color: #c0c0d0; font-size: 13px; margin-bottom: 6px; }\n"
-    "    input { width: 100%; padding: 10px 14px; border-radius: 8px;\n"
-    "            border: 1px solid #0f3460; background: #0f3460; color: #fff;\n"
-    "            font-size: 14px; margin-bottom: 18px; outline: none; }\n"
-    "    input:focus { border-color: #e94560; }\n"
-    "    button { width: 100%; padding: 12px; background: #e94560; color: #fff;\n"
-    "             border: none; border-radius: 8px; font-size: 15px;\n"
-    "             cursor: pointer; font-weight: bold; }\n"
-    "    button:hover { background: #c73652; }\n"
-    "    .status-link { display: block; text-align: center; margin-top: 18px;\n"
-    "                   color: #a0a0b0; font-size: 12px; text-decoration: none; }\n"
-    "    .status-link:hover { color: #e94560; }\n"
-    "  </style>\n"
-    "</head>\n"
-    "<body>\n"
-    "  <div class=\"card\">\n"
-    "    <h1>IoT Monitoring</h1>\n"
-    "    <p>Sistema Distribuido de Monitoreo de Sensores</p>\n"
-    "    <form id=\"loginForm\">\n"
-    "      <label for=\"username\">Usuario</label>\n"
-    "      <input type=\"text\" id=\"username\" placeholder=\"jperez\" required>\n"
-    "      <label for=\"password\">Contraseña</label>\n"
-    "      <input type=\"password\" id=\"password\" placeholder=\"••••••••\" required>\n"
-    "      <button type=\"submit\">Ingresar</button>\n"
-    "    </form>\n"
-    "    <a class=\"status-link\" href=\"/status\">Ver estado del sistema</a>\n"
-    "  </div>\n"
-    "  <script>\n"
-    "    document.getElementById('loginForm').addEventListener('submit', async (e) => {\n"
-    "      e.preventDefault();\n"
-    "      const user = document.getElementById('username').value;\n"
-    "      const pass = document.getElementById('password').value;\n"
-    "      try {\n"
-    "        const res = await fetch('http://' + location.hostname + ':5001/login', {\n"
-    "          method: 'POST',\n"
-    "          headers: {'Content-Type': 'application/json'},\n"
-    "          body: JSON.stringify({username: user, password: pass})\n"
-    "        });\n"
-    "        const data = await res.json();\n"
-    "        if (data.token) {\n"
-    "          localStorage.setItem('iot_token', data.token);\n"
-    "          localStorage.setItem('iot_user', data.username);\n"
-    "          alert('Login exitoso. Token guardado.\\nToken: ' + data.token.substring(0,16) + '...');\n"
-    "        } else {\n"
-    "          alert('Credenciales incorrectas.');\n"
-    "        }\n"
-    "      } catch(err) {\n"
-    "        alert('Error conectando al servicio de auth.');\n"
-    "      }\n"
-    "    });\n"
-    "  </script>\n"
-    "</body>\n"
-    "</html>\n";
-
-/* ─────────────────────────────────────────────
    UTILIDADES HTTP
 ───────────────────────────────────────────── */
 
@@ -142,6 +67,34 @@ static void send_http_response(int fd,
     send(fd, headers, hlen, 0);
     if (body && body_len > 0)
         send(fd, body, body_len, 0);
+}
+
+static void send_file_response(int fd, int status_code, const char *status_text,
+                               const char *content_type, const char *filepath)
+{
+    FILE *file = fopen(filepath, "r");
+    if (!file) {
+        const char *body = "<h2>404 - Archivo no encontrado</h2>";
+        send_http_response(fd, 404, "Not Found", "text/html", body, strlen(body));
+        return;
+    }
+
+    fseek(file, 0, SEEK_END);
+    long fsize = ftell(file);
+    fseek(file, 0, SEEK_SET);
+
+    char *body = malloc(fsize + 1);
+    if (body) {
+        fread(body, 1, fsize, file);
+        body[fsize] = '\0';
+        
+        send_http_response(fd, status_code, status_text, content_type, body, fsize);
+        free(body);
+    } else {
+        const char *err = "500 - Error Interno del Servidor";
+        send_http_response(fd, 500, "Internal Server Error", "text/plain", err, strlen(err));
+    }
+    fclose(file);
 }
 
 /*
@@ -194,10 +147,12 @@ static void build_status_json(char *buf, size_t buf_size)
     for (int i = 0; i < g_state->sensor_count && offset < (int)buf_size - 100; i++)
     {
         offset += snprintf(buf + offset, buf_size - offset,
-                           "    {\"id\":\"%s\",\"type\":\"%s\",\"status\":\"%s\"}%s\n",
+                           "    {\"id\":\"%s\",\"type\":\"%s\",\"status\":\"%s\",\"alert_level\":\"%s\",\"alert_msg\":\"%s\"}%s\n",
                            g_state->sensors[i].id,
                            g_state->sensors[i].type,
                            g_state->sensors[i].online ? "online" : "offline",
+                           strlen(g_state->sensors[i].last_alert_level) > 0 ? g_state->sensors[i].last_alert_level : "INFO",
+                           strlen(g_state->sensors[i].last_alert_msg) > 0 ? g_state->sensors[i].last_alert_msg : "Normal",
                            (i < g_state->sensor_count - 1) ? "," : "");
     }
 
@@ -264,9 +219,8 @@ static void handle_http_client(int client_fd, const char *client_ip)
     /* GET / → página de login */
     if (strcmp(path, "/") == 0 || strcmp(path, "/index.html") == 0)
     {
-        send_http_response(client_fd, 200, "OK",
-                           "text/html",
-                           HTML_INDEX, strlen(HTML_INDEX));
+        /* Ahora lee el archivo físico */
+        send_file_response(client_fd, 200, "OK", "text/html", "web/index.html");
         log_response(client_ip, HTTP_PORT, "200 GET /");
     }
 
@@ -275,10 +229,16 @@ static void handle_http_client(int client_fd, const char *client_ip)
     {
         char json_buf[4096] = {0};
         build_status_json(json_buf, sizeof(json_buf));
-        send_http_response(client_fd, 200, "OK",
-                           "application/json",
-                           json_buf, strlen(json_buf));
+        send_http_response(client_fd, 200, "OK", "application/json", json_buf, strlen(json_buf));
         log_response(client_ip, HTTP_PORT, "200 GET /status");
+    }
+
+    /* GET /dashboard → página visual de estado */
+    else if (strcmp(path, "/dashboard") == 0 || strcmp(path, "/status.html") == 0)
+    {
+        /* Ahora lee el archivo físico */
+        send_file_response(client_fd, 200, "OK", "text/html", "web/status.html");
+        log_response(client_ip, HTTP_PORT, "200 GET /dashboard");
     }
 
     /* GET /health → verificación rápida */

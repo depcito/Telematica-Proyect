@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IoT Monitoring — Dashboard</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Arial, sans-serif; background: #1a1a2e; color: #fff; padding: 30px; }
+    .header { text-align: center; margin-bottom: 40px; }
+    h1 { color: #e94560; margin-bottom: 10px; }
+    p { color: #a0a0b0; }
+    .grid { display: flex; gap: 20px; justify-content: center; flex-wrap: wrap; margin-bottom: 40px; }
+    .card { background: #16213e; border-radius: 8px; padding: 20px; width: 160px; text-align: center; box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
+    .card h2 { font-size: 36px; color: #e94560; margin-bottom: 5px; }
+    table { width: 100%; max-width: 800px; margin: 0 auto; border-collapse: collapse; background: #16213e; border-radius: 8px; overflow: hidden; }
+    th, td { padding: 15px; text-align: center; border-bottom: 1px solid #0f3460; }
+    th { background: #0f3460; color: #e94560; }
+    .online { color: #4CAF50; font-weight: bold; }
+    .offline { color: #F44336; font-weight: bold; }
+    .back-link { display: block; text-align: center; margin-top: 30px; color: #a0a0b0; text-decoration: none; }
+    .back-link:hover { color: #e94560; }
+    .alert-INFO { color: #50A0FF; } /* Azul */
+    .alert-WARNING { color: #FFA532; } /* Naranja */
+    .alert-CRITICAL { color: #E63C3C; font-weight: bold; } /* Rojo */
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Dashboard del Sistema IoT</h1>
+    <p>Monitoreo en tiempo real de sensores y operadores</p>
+  </div>
+  <div class="grid">
+    <div class="card"><h2 id="val-sensors">-</h2><p>Sensores Activos</p></div>
+    <div class="card"><h2 id="val-operators">-</h2><p>Operadores</p></div>
+    <div class="card"><h2 id="val-alerts">-</h2><p>Alertas Totales</p></div>
+    <div class="card"><h2 id="val-uptime">-</h2><p>Uptime (seg)</p></div>
+  </div>
+  <table id="sensor-table">
+    <thead>
+      <tr>
+        <th>ID Sensor</th>
+        <th>Tipo</th>
+        <th>Estado Red</th>
+        <th>Estado Operativo</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+  <a class="back-link" href="/">← Volver al Login</a>
+  <script>
+    async function fetchStatus() {
+      try {
+        const res = await fetch('/status');
+        const data = await res.json();
+        document.getElementById('val-sensors').innerText = data.sensors;
+        document.getElementById('val-operators').innerText = data.operators;
+        document.getElementById('val-alerts').innerText = data.alerts;
+        document.getElementById('val-uptime').innerText = data.uptime;
+        const tbody = document.querySelector('#sensor-table tbody');
+        tbody.innerHTML = '';
+        data.sensor_list.forEach(s => {
+          const row = document.createElement('tr');
+          const statusClass = s.status === 'online' ? 'online' : 'offline';
+          
+          // Formatear el mensaje (quitar guiones bajos)
+          const cleanMsg = s.alert_msg.replace(/_/g, ' ');
+          
+          row.innerHTML = `
+            <td>${s.id}</td>
+            <td>${s.type}</td>
+            <td class="${statusClass}">${s.status.toUpperCase()}</td>
+            <td class="alert-${s.alert_level}">
+              ${s.alert_level}
+            </td>
+          `;
+          tbody.appendChild(row);
+        });
+      } catch (err) { console.error('Error:', err); }
+    }
+    fetchStatus();
+    setInterval(fetchStatus, 5000);
+  </script>
+</body>
+</html>
