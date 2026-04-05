@@ -484,6 +484,61 @@ El sistema puede desplegarse sobre una instancia Linux usando Docker.
 - 8081 → dashboard web
 
 
+## DNS
+En este proyecto no se configuró un dominio público (por ejemplo, midominio.com), ni se utilizó un servicio de DNS externo. En su lugar, se emplea el sistema de resolución de nombres interno proporcionado por Docker.
+
+### Cómo funciona el DNS en Docker
+
+Cuando se utiliza Docker Compose, todos los contenedores que pertenecen a la misma red virtual pueden comunicarse entre sí utilizando el nombre del servicio definido en el archivo docker-compose.yml.
+
+Por ejemplo:
+
+auth-server → servicio de autenticación
+server → servidor central
+
+Esto significa que, dentro de la red Docker, un contenedor no necesita conocer la dirección IP de otro contenedor, sino que puede referenciarlo directamente por nombre.
+
+Ejemplo práctico:
+
+En lugar de usar una IP como:
+http://172.17.0.2:5001
+
+Se utiliza:
+http://auth-server:5001
+
+Docker se encarga automáticamente de traducir ese nombre a la IP correspondiente del contenedor.
+
+### Por qué no se utilizó un dominio público?
+
+La decisión de no configurar un dominio externo se basa en los siguientes factores:
+
+1. El objetivo del proyecto es académico, no productivo.
+2. El sistema funciona correctamente mediante dirección IP pública.
+3. No se requiere acceso mediante nombre amigable para usuarios finales.
+4. La configuración de DNS externo no aporta valor funcional adicional al sistema en este contexto.
+
+### Por qué esto no afecta el funcionamiento del sistema?
+
+El no utilizar un dominio público no impacta negativamente el sistema, ya que:
+
+- Todas las comunicaciones internas entre servicios se realizan mediante el DNS interno de Docker.
+- El acceso externo se puede realizar directamente mediante la IP pública del servidor.
+- Los protocolos utilizados (TCP y HTTP) no dependen de un dominio, sino de direcciones alcanzables (IP + puerto).
+- La arquitectura distribuida se mantiene completamente funcional sin necesidad de resolución DNS externa.
+
+### Ventajas del uso de DNS interno de Docker
+
+- Evita el uso de direcciones IP hardcodeadas
+- Facilita el despliegue en diferentes entornos
+- Mejora la portabilidad del sistema
+- Permite cambiar contenedores sin afectar la comunicación
+- Simula el comportamiento de DNS en sistemas reales distribuidos
+
+### Conclusión sobre DNS
+
+Aunque no se implementó un dominio público, el sistema sí utiliza resolución de nombres mediante el DNS interno de Docker, lo cual cumple el mismo propósito a nivel de comunicación entre servicios. Esta decisión es adecuada para el alcance del proyecto y no limita su funcionamiento ni su validez como sistema distribuido.
+
+
 ## Ventajas arquitectónicas del sistema
 Esta arquitectura distribuida ofrece varias ventajas:
 - separación clara de responsabilidades
