@@ -1,6 +1,7 @@
 # 🌐 Sistema Distribuido de Monitoreo de Sensores IoT
 
 ![Docker](https://img.shields.io/badge/Docker-Ready-blue)
+![Python|Flask](https://img.shields.io/badge/Python|Flask-Backend-green)
 ![C](https://img.shields.io/badge/C-Backend-orange)
 ![Java](https://img.shields.io/badge/Java-Swing-red)
 
